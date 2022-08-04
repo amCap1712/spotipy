@@ -110,6 +110,7 @@ class Spotify(object):
         status_retries=max_retries,
         backoff_factor=0.3,
         language=None,
+        retry: urllib3.Retry = None
     ):
         """
         Creates a Spotify API client.
@@ -145,6 +146,8 @@ class Spotify(object):
         :param language:
             The language parameter advertises what language the user prefers to see.
             See ISO-639-1 language code: https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+        :param retry:
+            urlib3 retrier
         """
         self.prefix = "https://api.spotify.com/v1/"
         self._auth = auth
@@ -158,6 +161,7 @@ class Spotify(object):
         self.retries = retries
         self.status_retries = status_retries
         self.language = language
+        self.retry = retry
 
         if isinstance(requests_session, requests.Session):
             self._session = requests_session
@@ -190,16 +194,7 @@ class Spotify(object):
 
     def _build_session(self):
         self._session = requests.Session()
-        retry = urllib3.Retry(
-            total=self.retries,
-            connect=None,
-            read=False,
-            allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE']),
-            status=self.status_retries,
-            backoff_factor=self.backoff_factor,
-            status_forcelist=self.status_forcelist)
-
-        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+        adapter = requests.adapters.HTTPAdapter(max_retries=self.retry)
         self._session.mount('http://', adapter)
         self._session.mount('https://', adapter)
 
